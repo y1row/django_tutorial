@@ -1,7 +1,8 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 
-from .models import Question
+from .models import Choice, Question
 
 
 def index(request):
@@ -23,4 +24,16 @@ def results(request, question_id):
 
 
 def vote(request, question_id):
-    return HttpResponse("You're voting on question %s." % question_id)
+    question = get_object_or_404(Question, pk=question_id)
+    try:
+        choice = question.choice_set.get(pk=request.POST['choice'])
+    except (KeyError, Choice.DoesNotExist):
+        return render(request, 'detail.html', {
+            'question': question,
+            'error_message': 'その選択肢はありません',
+        })
+    else:
+        choice.votes += 1
+        choice.save()
+
+        return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))
